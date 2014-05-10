@@ -217,10 +217,11 @@ def dump_tempfile(path):
 			except (OSError, IOError): pass
 
 def dump_tags(bms, dst):
-	tag_list = list()
-	for bm in bms.viewvalues():
-		tag_list.extend(bm['bm_tags'])
-	dst.write('ffhome_tags={};\n'.format(json.dumps(tag_list)))
+	# Assuming that character case doesn't matter for tags
+	tags = defaultdict(int)
+	for tag in it.chain.from_iterable(
+		it.imap(op.itemgetter('bm_tags'), bms.viewvalues()) ): tags[tag.lower()] += 1
+	dst.write('ffhome_tags={};\n'.format(json.dumps(tags)))
 
 def dump_backlog(links, dst):
 	dst.write('ffhome_links={};\n'.format(json.dumps(
@@ -330,7 +331,7 @@ def main(args=None):
 	with dump_tempfile(join(opts.output_path, 'backlog.json')) as dst:
 		dump_backlog(backlog, dst)
 
-	if opts.print_html_path:
+	if opts.print_html_url:
 		import urllib
 		path = urllib.quote(join(abspath(opts.output_path), 'index.html'))
 		print('file://{}'.format(path))
