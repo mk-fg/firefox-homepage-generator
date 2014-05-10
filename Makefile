@@ -1,5 +1,6 @@
 BACKLOG =
 DESTDIR =
+DEBUG =
 
 JS_PATH = parts/js
 JS_FILES = $(wildcard $(JS_PATH)/*.js)
@@ -26,6 +27,9 @@ ifdef BACKLOG
 endif
 ifdef DESTDIR
 	ffhomegen_args += -o $(DESTDIR)
+endif
+ifdef DEBUG
+	ffhomegen_args += --debug
 endif
 
 home:

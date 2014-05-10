@@ -218,10 +218,18 @@ def dump_tempfile(path):
 
 def dump_tags(bms, dst):
 	# Assuming that character case doesn't matter for tags
-	tags = defaultdict(int)
-	for tag in it.chain.from_iterable(
-		it.imap(op.itemgetter('bm_tags'), bms.viewvalues()) ): tags[tag.lower()] += 1
-	dst.write('ffhome_tags={};\n'.format(json.dumps(tags)))
+	tags, links = defaultdict(int), defaultdict(dict)
+	for bm in bms.viewvalues():
+		title = bm.get('bm_title') or bm['title']
+		link = dict(title=title, url=bm['url'])
+		for tag in bm['bm_tags']:
+			tag = tag.lower()
+			tags[tag] += 1
+			links[tag][link['url']] = link # dedup by url
+	for tag in links: links[tag] = links[tag].values()
+	dst.write(
+		'ffhome_tags={};\nffhome_tag_links={};\n'\
+		.format(json.dumps(tags), json.dumps(links)) )
 
 def dump_backlog(links, dst):
 	dst.write('ffhome_links={};\n'.format(json.dumps(
@@ -307,7 +315,7 @@ def main(args=None):
 				sqlite3.Row, lambda s,o: s.represent_dict(dict((k, o[k]) for k in o.keys())) )
 			pyaml.UnsafePrettyYAMLDumper.add_representer(
 				Link, lambda s,o: s.represent_dict(o._asdict()) )
-		dump = ft.partial(pyaml.dump, dst=sys.stdout)
+		dump = ft.partial(pyaml.dump, dst=sys.stdout, force_embed=True)
 
 	profile_dir = get_profile_dir(opts.profile)
 	log.debug('Using ff profile dir: %s', profile_dir)

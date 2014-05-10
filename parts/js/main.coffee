@@ -18,6 +18,9 @@ font_scale = [font_scale, font_scale * 3]
 font_scale = d3.scale['linear']().range(font_scale) # log, sqrt, linear
 font_scale.domain([+tags[tags.length - 1].value or 1, +tags[0].value])
 
+tag_links = ffhome_tag_links
+tag_links_box = d3.select('#tag-links')
+
 
 draw = (data, bounds) ->
 	scale = if bounds\
@@ -80,13 +83,28 @@ d3.select('#vis-shuffle')
 		layout.stop().start())
 
 focus = (tag) ->
-	console.log(tag)
+	links = tag_links_box.select('ul')
+		.selectAll('li')
+			.data(tag_links[tag.key], (d, i) -> d.url)
+	links.enter()
+		.append('li')
+			.append('a')
+				.attr('href', (d) -> d.url)
+				.each((d) -> console.log('Enter: %o', d))
+				.text((d) -> d.title or d.url)
+	links.exit()
+		.each((d) -> console.log('Exit: %o', d))
+		.remove()
+	tag_links_box.style('display', 'block')
 
 
-d3.select('#backlog').append('ul')
-	.selectAll('li')
-		.data(ffhome_links)
-	.enter().append('li')
-		.append('a')
-			.attr('href', (d) -> d.url)
-			.text((d) -> d.title or d.url)
+if ffhome_links? and ffhome_links.length
+	backlog = d3.select('#backlog')
+	backlog.select('ul')
+		.selectAll('li')
+			.data(ffhome_links)
+		.enter().append('li')
+			.append('a')
+				.attr('href', (d) -> d.url)
+				.text((d) -> d.title or d.url)
+	backlog.style('display', 'block')

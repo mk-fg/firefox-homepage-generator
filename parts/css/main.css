@@ -9,3 +9,6 @@
 #vis text:hover {
   opacity: 0.7 !important; }
 
+#tag-links, #backlog {
+  display: none; }
+
