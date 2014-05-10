@@ -44,10 +44,10 @@ output path (configurable via --output-path, see also --output-format).
 
 Examples:
 ```console
-	./ffhomegen.py
-	./ffhomegen.py -o ~/media/ffhome
-	./ffhomegen.py -b ~/media/links.yaml
-	firefox $(./ffhomegen.py -v)
+% ./ffhomegen.py
+% ./ffhomegen.py -o ~/media/ffhome
+% ./ffhomegen.py -b ~/media/links.yaml
+% firefox $(./ffhomegen.py -v)
 ```
 
 ### Requirements
@@ -73,7 +73,8 @@ Links
  * FF even has similar thing built-in (but default-disabled for ages now) -
    [browser.bookmarks.autoExportHTML](http://kb.mozillazine.org/Browser.bookmarks.autoExportHTML).
 
- * [Helpful explaination of how ff bookmarks are organized in places.sqlite](http://stackoverflow.com/a/740183).
+ * [Helpful explaination](http://stackoverflow.com/a/740183) of how ff bookmarks
+   are organized in places.sqlite.
 
  * There are some interesting upsides of building such page by hand -
    [blog post](http://utcc.utoronto.ca/~cks/space/blog/web/BookmarksAlternative) (not mine).

@@ -3,7 +3,8 @@
 from __future__ import print_function
 
 import itertools as it, operator as op, functools as ft
-from os.path import join, exists, isfile, isdir, expanduser, dirname, basename, realpath
+from os.path import ( join, exists, isfile, isdir,
+	expanduser, dirname, basename, realpath, abspath )
 from contextlib import contextmanager, closing
 from collections import defaultdict, OrderedDict, namedtuple
 from tempfile import NamedTemporaryFile
@@ -281,8 +282,8 @@ def main(args=None):
 		type=float, metavar='seconds', default=30,
 		help='Timeout to acquire sqlite transaction locks (default: %(default)ss).')
 
-	parser.add_argument('-v', '--print-html-path',
-		action='store_true', help='Print full path to produced html to stdout.')
+	parser.add_argument('-v', '--print-html-url',
+		action='store_true', help='Print file:// URL to produced html to stdout on exit.')
 	parser.add_argument('-d', '--debug', action='store_true', help='Verbose operation mode.')
 	opts = parser.parse_args(sys.argv[1:] if args is None else args)
 
@@ -330,7 +331,9 @@ def main(args=None):
 		dump_backlog(backlog, dst)
 
 	if opts.print_html_path:
-		print(join(opts.output_path, 'index.html'))
+		import urllib
+		path = urllib.quote(join(abspath(opts.output_path), 'index.html'))
+		print('file://{}'.format(path))
 
 
 if __name__ == '__main__': sys.exit(main())
