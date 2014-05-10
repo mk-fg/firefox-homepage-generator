@@ -15,7 +15,48 @@ Idea so far:
 
  - Optional page tabs with a full list of both things.
 
+
+Templates and static assets in the "parts" directory will be used to construct
+result in one of a few ways:
+
+ * Build html file and copy it along with separate static "assets" files into a
+   target directory.
+
+ * Build one "fat" html file with all the assets embedded in it.
+
+ * Produce a single "lean" html file with asset links to various external CDN
+   sources (really bad idea).
+
+Difference between these is caching, but likely irrelevant when loaded from a
+local disk anyway.
+
+
 Work in progress, not really usable yet.
+
+
+
+Usage
+--------------------
+
+Doesn't need to be "installed" - just put the contents of the repo/package
+anywhere, run the script to generate the page (and/or copy/link assets) in the
+output path (configurable via --output-path, see also --output-format).
+
+Examples:
+```console
+	./ffhomegen.py
+	./ffhomegen.py -o ~/media/ffhome
+	./ffhomegen.py -b ~/media/links.yaml
+	firefox $(./ffhomegen.py -v)
+```
+
+### Requirements
+
+ * Python 2.7 (not 3.X)
+ * (optional) [yaml](http://pyyaml.org/) for parsing of "backlog" file
+
+See http://pip2014.com/ for help with python modules' packaging.
+
 
 
 Links

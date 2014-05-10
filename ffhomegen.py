@@ -3,10 +3,12 @@
 from __future__ import print_function
 
 import itertools as it, operator as op, functools as ft
-from os.path import join, exists, isfile, isdir, expanduser
-from contextlib import closing
+from os.path import join, exists, isfile, isdir, expanduser, dirname, basename, realpath
+from contextlib import contextmanager, closing
 from collections import defaultdict, OrderedDict, namedtuple
-import os, sys, io, types, re, random, sqlite3, ConfigParser
+from tempfile import NamedTemporaryFile
+import os, sys, io, types, re, random, json, shutil
+import sqlite3, ConfigParser
 
 
 class AdHocException(Exception): pass
@@ -200,47 +202,42 @@ def backlog_process(backlog, spec):
 	else: raise ValueError(spec)
 
 
-def generate_rst(bookmarks, backlog): # XXX: also recent/common places maybe?
-	output = io.StringIO()
-	p = lambda line,end=u'\n': print(unicode(line), end=end, file=output)
+@contextmanager
+def dump_tempfile(path):
+	kws = dict( suffix='.', delete=False,
+		dir=dirname(path), prefix=basename(path) )
+	with NamedTemporaryFile(**kws) as tmp:
+		try:
+			yield tmp
+			tmp.flush()
+			os.rename(tmp.name, path)
+		finally:
+			try: os.unlink(tmp.name)
+			except (OSError, IOError): pass
 
-	def p_header(header, style=u'=', indent=u'', newlines=1):
-		p(indent, end=u'')
-		p(header)
-		p(indent, end=u'')
-		p(u'='*len(header))
-		p(u'\n'*newlines, end=u'')
+def dump_tags(bms, dst):
+	tag_list = list()
+	for bm in bms.viewvalues():
+		tag_list.extend(bm['bm_tags'])
+	dst.write('ffhome_tags={};\n'.format(json.dumps(tag_list)))
 
-	links = OrderedDict()
-	def p_link(title, url, tpl=None, tpl_cb=None, end=u'\n'):
-		assert title not in links, title # XXX: append some token
-		if not title: link = url
-		else:
-			title = title.replace('`', "'").replace(':', '_')
-			link = u'`{}`_'.format(title)
-			links[title] = url
-		if tpl: p(unicode(tpl).format(link), end=end)
-		elif tpl_cb: p(tpl(link), end=end)
-		else: return link
-	def p_link_urls(newlines_pre=1, newlines=0):
-		p(u'\n'*newlines_pre, end=u'')
-		for title, url in links.viewitems():
-			p(u'.. _{}: {}'.format(title, url))
-		links.clear()
-		p(u'\n'*newlines, end=u'')
+def dump_backlog(links, dst):
+	dst.write('ffhome_links={};\n'.format(json.dumps(
+		list(dict(title=link.title, url=link.url) for link in links) )))
 
-	p_header('Bookmarks')
-	for bm in bookmarks.viewvalues():
-		p_link(bm['bm_title'], bm['url'], ' * {}')
-	p_link_urls(newlines=2)
-
-	p_header('Backlog')
-	for link in backlog:
-		p_link(link.title, link.url, ' * {}')
-	p_link_urls()
-
-	return output.getvalue()
-
+def copy_parts(src_path, dst_path, symlink=False, hardlink=False):
+	assert not (symlink and hardlink)
+	src_path_abs = realpath(src_path)
+	for root, dirs, files in os.walk(src_path_abs):
+		assert root.startswith(src_path_abs), [root, src_path_abs]
+		dst = join(dst_path, root[len(src_path_abs) + 1:])
+		for f in files:
+			if not exists(dst): os.makedirs(dst)
+			src_file, dst_file = join(root, f), join(dst, f)
+			if exists(dst_file): os.unlink(dst_file)
+			if symlink: os.symlink(realpath(src_file), dst_file)
+			elif hardlink: os.link(src_file, dst_file)
+			else: shutil.copyfile(src_file, dst_file)
 
 
 def main(args=None):
@@ -248,8 +245,24 @@ def main(args=None):
 	parser = argparse.ArgumentParser(
 		description='Tool to generate firefox homepage from bookmarks, history and other data.')
 
-	parser.add_argument('-o', '--output', metavar='format', choices=['rst', 'html'], default='html',
-		help='Output format. Possible choices: rst, html (default: %(default)s).')
+	parser.add_argument('-o', '--output-path',
+		metavar='path', default=join(dirname(__file__), 'output'),
+		help='Path to where the resulting html or homepage'
+			' directory with "index.html" will be generated (default: %(default)s).')
+	parser.add_argument('-f', '--output-format',
+		metavar='format', default='dir', # XXX: should be "fat"
+		choices=['fat', 'dir', 'dir-symlinks', 'dir-hardlinks', 'lean'],
+		help='Output format. Possible choices: fat, dir, lean (default: %(default)s).'
+			' "fat" will generate a single html file in --output-path, with all js/css assets embedded.'
+			' "dir" options will create directory at --output-path,'
+				' generate index.html there and copy/link all the necessary assets to it.'
+			' "lean" will generate single html file (like "fat"),'
+				' but will embed only stuff that cant be linked from the web (e.g. d3 from d3js.org).')
+
+	parser.add_argument('-p', '--parts-path',
+		metavar='dir', default=join(dirname(__file__), 'parts'),
+		help='Path to directory with html, js and css files (default: %(default)s).'
+			' JSON files with data will be generated there, to be loaded (or embedded) into html.')
 
 	parser.add_argument('-b', '--backlog', metavar='path',
 		help='Path to yaml with a backlog of random links to visit.'
@@ -268,6 +281,8 @@ def main(args=None):
 		type=float, metavar='seconds', default=30,
 		help='Timeout to acquire sqlite transaction locks (default: %(default)ss).')
 
+	parser.add_argument('-v', '--print-html-path',
+		action='store_true', help='Print full path to produced html to stdout.')
 	parser.add_argument('-d', '--debug', action='store_true', help='Verbose operation mode.')
 	opts = parser.parse_args(sys.argv[1:] if args is None else args)
 
@@ -304,12 +319,18 @@ def main(args=None):
 
 	# XXX: get_places()
 
-	out = generate_rst(bookmarks, backlog)
-	if opts.output == 'html':
-		raise NotImplementedError
-		# XXX: generate_html(out)
 
-	sys.stdout.write(out.encode('utf-8'))
+	## Install
+	if opts.output_format.startswith('dir'):
+		link_kws = dict((w, w in opts.output_format) for w in ['symlink', 'hardlink'])
+		copy_parts(opts.parts_path, opts.output_path, **link_kws)
+	with dump_tempfile(join(opts.output_path, 'tags.json')) as dst:
+		dump_tags(bookmarks, dst)
+	with dump_tempfile(join(opts.output_path, 'backlog.json')) as dst:
+		dump_backlog(backlog, dst)
+
+	if opts.print_html_path:
+		print(join(opts.output_path, 'index.html'))
 
 
 if __name__ == '__main__': sys.exit(main())

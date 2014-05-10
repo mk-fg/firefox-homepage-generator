@@ -1,2 +1,5 @@
+/parts/*.json
+/backlog.yaml
+/output
 *.pyc
 *.pyo
