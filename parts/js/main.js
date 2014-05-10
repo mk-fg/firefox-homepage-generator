@@ -87,14 +87,10 @@
     });
     links.enter().append('li').append('a').attr('href', function(d) {
       return d.url;
-    }).each(function(d) {
-      return console.log('Enter: %o', d);
     }).text(function(d) {
       return d.title || d.url;
     });
-    links.exit().each(function(d) {
-      return console.log('Exit: %o', d);
-    }).remove();
+    links.exit().remove();
     return tag_links_box.style('display', 'block');
   };
 

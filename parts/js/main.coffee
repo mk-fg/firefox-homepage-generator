@@ -1,3 +1,5 @@
+# XXX: tag font-size range, canvas size, etc should be configurable via templating
+
 tags = d3.entries(ffhome_tags).sort((a, b) -> return b.value - a.value)
 fill = d3.scale.category20()
 
@@ -70,9 +72,9 @@ layout = d3.layout.cloud()
 	.font('Impact')
 	.fontSize((d) -> font_scale(d.value))
 	.timeInterval(Infinity)
-	# .timeInterval(10)
 	.words(tags)
 	.text((d) -> d.key)
+	# XXX: draw build progress as a css bar
 	# .on('word', status)
 	.on('end', draw)
 	.start()
@@ -90,12 +92,12 @@ focus = (tag) ->
 		.append('li')
 			.append('a')
 				.attr('href', (d) -> d.url)
-				.each((d) -> console.log('Enter: %o', d))
 				.text((d) -> d.title or d.url)
-	links.exit()
-		.each((d) -> console.log('Exit: %o', d))
-		.remove()
+	links.exit().remove()
 	tag_links_box.style('display', 'block')
+
+	# XXX: only leave that one node, fade the rest out
+	# XXX: show graph of linked tags on top of that, with some easy way back
 
 
 if ffhome_links? and ffhome_links.length

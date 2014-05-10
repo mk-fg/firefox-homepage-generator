@@ -8,6 +8,9 @@
 	height: 600px;
 }
 
-#vis text:hover { opacity: .7 !important; }
+#vis text {
+	cursor: pointer;
+	&:hover { opacity: .7 !important; }
+}
 
 #tag-links, #backlog { display: none; }
