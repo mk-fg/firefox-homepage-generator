@@ -2,19 +2,7 @@ firefox-homepage-generator
 --------------------
 
 Tool to generate a dynamic version of a firefox "homepage" with tag cloud of
-bookmarks and a backlog.
-
-Idea so far:
-
- - Have tags from bookmarks form some sort of dynamic (very much js) tag cloud,
-   which should be easy to navigate and find stuff in without redirects or much lag.
-
- - Have a short list of random items from "backlog" - either picked from
-   bookmarks by tag or from external sources - to click on and read when bored
-   or feel like learning something useful (ha ha).
-
- - Optional page tabs with a full list of both things.
-
+bookmarks and a random selection of backlog ("read later") links.
 
 Templates and static assets in the "parts" directory will be used to construct
 result in one of a few ways:
@@ -22,16 +10,13 @@ result in one of a few ways:
  * Build html file and copy it along with separate static "assets" files into a
    target directory.
 
- * Build one "fat" html file with all the assets embedded in it.
+ * Build one "fat" html file with all the assets embedded in it (TODO).
 
  * Produce a single "lean" html file with asset links to various external CDN
-   sources (really bad idea).
+   sources (kinda bad idea, TODO).
 
 Difference between these is caching, but likely irrelevant when loaded from a
 local disk anyway.
-
-
-Work in progress, not really usable yet.
 
 
 
@@ -56,6 +41,13 @@ Examples:
  * (optional) [yaml](http://pyyaml.org/) for parsing of "backlog" file
 
 See http://pip2014.com/ for help with python modules' packaging.
+
+To rebuild *.coffee, *.scss and *.jade files (not needed to just run the thing),
+any suitable compiler for these formats can be used.
+I use [node-based coffee-script](http://coffeescript.org/),
+[libsass](https://pypi.python.org/pypi/libsass),
+[pyjade](https://pypi.python.org/pypi/pyjade) + [jinja2](http://jinja.pocoo.org/).
+Just typing "make" should do it with all these installed.
 
 
 
