@@ -1,0 +1,29 @@
+doctype html
+html(lang='en')
+
+	head
+		meta(charset='utf-8')
+		title Home
+		link(rel='stylesheet' href='css/main.css')
+
+	body
+		div(id='content')
+
+			div(id='vis')
+				button(id='vis-shuffle') Shuffle
+
+			section(id='tag-links')
+				h1 Tag Links
+				ul
+
+			section(id='backlog')
+				h1 Backlog
+				ul
+
+		script(src='js/d3.js')
+		script(src='js/d3.layout.cloud.js')
+
+		script(src='tags.json')
+		script(src='backlog.json')
+
+		script(src='js/main.js')
