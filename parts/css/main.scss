@@ -10,10 +10,14 @@
 		svg {
 			width: 100%;
 			height: 600px;
-			text {
-				cursor: pointer;
-				&:hover { opacity: .7 !important; }
+
+			.tag-cloud{
+				text {
+					cursor: pointer;
+					&:hover { opacity: .7 !important; }
+				}
 			}
+
 		}
 	}
 

@@ -218,7 +218,7 @@ def dump_tempfile(path):
 
 def dump_tags(bms, dst):
 	# Assuming that character case doesn't matter for tags
-	tags, links = defaultdict(int), defaultdict(dict)
+	tags, edges, links = defaultdict(int), defaultdict(int), defaultdict(dict)
 	for bm in bms.viewvalues():
 		title = bm.get('bm_title') or bm['title']
 		link = dict(title=title, url=bm['url'])
@@ -226,10 +226,15 @@ def dump_tags(bms, dst):
 			tag = tag.lower()
 			tags[tag] += 1
 			links[tag][link['url']] = link # dedup by url
-	for tag in links: links[tag] = links[tag].values()
+		if len(bm['bm_tags']) > 1:
+			for tag_pair in it.combinations(bm['bm_tags'], 2):
+				edges[tuple(sorted(tag_pair))] += 1
+	for tag in links:
+		tags[tag] = dict(value=tags[tag], links=links[tag].values())
+	edges = list((t1, t2, v) for (t1,t2),v in edges.viewitems() if v > 0)
 	dst.write(
-		'ffhome_tags={};\nffhome_tag_links={};\n'\
-		.format(json.dumps(tags), json.dumps(links)) )
+		'ffhome_tags={};\nffhome_tag_edges={};\n'\
+		.format(json.dumps(tags), json.dumps(edges)) )
 
 def dump_backlog(links, dst):
 	dst.write('ffhome_links={};\n'.format(json.dumps(
