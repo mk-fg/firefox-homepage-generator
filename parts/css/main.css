@@ -6,11 +6,7 @@
   width: 100%; }
   .vis-box #vis svg {
     width: 100%;
-    height: 600px;
-    /* .tag-graph { */
-    /* 	.link { stroke: #ccc; } */
-    /* 	.node text { pointer-events: none; font: 10px sans-serif; } */
-    /* } */ }
+    height: 600px; }
     .vis-box #vis svg .tag-cloud text {
       cursor: pointer; }
       .vis-box #vis svg .tag-cloud text:hover {

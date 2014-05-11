@@ -8,9 +8,17 @@ tags =
 	indexed: ffhome_tags
 	sorted:\
 		({tag: k, value: v.value, links: v.links} for own k,v of ffhome_tags)\
-			.sort((a, b) -> return b.value - a.value)
+			.sort((a, b) -> b.value - a.value)
 	links_box: d3.select('#tag-links')
-	edges: ffhome_tag_edges
+	edges:
+		sorted: ffhome_tag_edges.sort((a, b) -> a[2] - b[2])
+		indexed: do ->
+			index = {}
+			for [t1, t2, v] in ffhome_tag_edges
+				for [t1, t2] in [[t1, t2], [t2, t1]]
+					if not index[t1]? then index[t1] = {}
+					index[t1][t2] = v
+			index
 	highlight: null
 
 vis =
@@ -19,6 +27,10 @@ vis =
 	data: null # cached from draw for draw_hl_fade
 	status: d3.select('#vis-status div')
 	status_counter: 0
+	opacity:
+		highlight: 1
+		unrelated: 0.1
+		scale: d3.scale.sqrt().range([0.2, 0.9])
 [vis.w, vis.h] = [
 	vis.box.node().clientWidth,
 	vis.box.node().clientHeight ]
@@ -37,19 +49,28 @@ assert(vis.font_scale.match(/px$/), vis)
 vis.font_scale = parseInt(vis.font_scale)
 vis.font_scale = d3.scale.linear()
 	.range([vis.font_scale, vis.font_scale * 3])
-	.domain([+tags.sorted[tags.sorted.length - 1].value or 1, +tags.sorted[0].value])
-
+	.domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value])
 
 draw_hl_fade = (selection) ->
 	assert(selection? or vis.data)
 	hl_check = (d) -> not tags.highlight or d.tag == tags.highlight
+
+	edges = tags.edges.indexed[tags.highlight]
+	opacity_scale = vis.opacity.scale.copy()
+		.domain(d3.extent(d3.values(edges)))
+	[a, b] = opacity_scale.domain()
+	if a == b then do (v=opacity_scale.range()[1]) ->
+		opacity_scale = (n) -> v
 
 	if not selection?
 		selection = vis.cloud.selectAll('text')
 			.data(vis.data, (d) -> d.tag)
 	selection.transition()
 		.duration(1000)
-		.style('opacity', (d) -> if hl_check(d) then 1 else 0.2)
+		.style 'opacity', (d) ->
+			if hl_check(d) then return vis.opacity.highlight
+			if not edges[d.tag]? then return vis.opacity.unrelated
+			opacity_scale(edges[d.tag])
 
 draw = (data, bounds) ->
 	scale = if bounds\
@@ -134,8 +155,6 @@ focus = (d) ->
 				.text((d) -> d.title or d.url)
 	links.exit().remove()
 	tags.links_box.style('display', 'block')
-
-	# XXX: show graph of linked tags on top of that, with some easy way back
 
 
 if ffhome_links? and ffhome_links.length
