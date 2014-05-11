@@ -42,4 +42,4 @@ ifdef DEBUG
 endif
 
 home: coffee sass jade
-	./ffhomegen.py -v $(ffhomegen_args)
+	./ffhomegen.py $(ffhomegen_args)
