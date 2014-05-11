@@ -43,3 +43,6 @@ endif
 
 home: coffee sass jade
 	./ffhomegen.py $(ffhomegen_args)
+
+home-only:
+	./ffhomegen.py $(ffhomegen_args)
