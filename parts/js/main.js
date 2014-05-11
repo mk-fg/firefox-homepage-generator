@@ -60,8 +60,31 @@
     status_counter: 0,
     opacity: {
       highlight: 1,
-      unrelated: 0.1,
-      scale: d3.scale.sqrt().range([0.2, 0.9])
+      unrelated: 0.15,
+      scale_ranges: {
+        1: d3.scale.linear().range([0.3, 0.5])
+      },
+      scale_for: function(order, domain) {
+        var a, b, scale;
+        if (typeof domain === 'object') {
+          domain = d3.values(domain);
+        }
+        if (typeof domain === 'array') {
+          domain = d3.extent(domain);
+        }
+        assert(domain);
+        scale = vis.opacity.scale_ranges[order].copy().domain(domain);
+        a = domain[0], b = domain[1];
+        if (a === b) {
+          return (function(v) {
+            return function(any) {
+              return v;
+            };
+          })(scale.range()[1]);
+        } else {
+          return scale;
+        }
+      }
     }
   };
 
@@ -92,21 +115,13 @@
   vis.font_scale = d3.scale.linear().range([vis.font_scale, vis.font_scale * 3]).domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value]);
 
   draw_hl_fade = function(selection) {
-    var a, b, edges, hl_check, opacity_scale, _ref1;
+    var edges, hl_check, opacity_scale;
     assert((selection != null) || vis.data);
     hl_check = function(d) {
       return !tags.highlight || d.tag === tags.highlight;
     };
-    edges = tags.edges.indexed[tags.highlight];
-    opacity_scale = vis.opacity.scale.copy().domain(d3.extent(d3.values(edges)));
-    _ref1 = opacity_scale.domain(), a = _ref1[0], b = _ref1[1];
-    if (a === b) {
-      (function(v) {
-        return opacity_scale = function(n) {
-          return v;
-        };
-      })(opacity_scale.range()[1]);
-    }
+    edges = tags.edges.indexed[tags.highlight] || {};
+    opacity_scale = vis.opacity.scale_for(1, edges);
     if (selection == null) {
       selection = vis.cloud.selectAll('text').data(vis.data, function(d) {
         return d.tag;

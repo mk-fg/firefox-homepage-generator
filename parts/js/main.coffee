@@ -29,8 +29,20 @@ vis =
 	status_counter: 0
 	opacity:
 		highlight: 1
-		unrelated: 0.1
-		scale: d3.scale.sqrt().range([0.2, 0.9])
+		unrelated: 0.15
+		scale_ranges:
+			1: d3.scale.linear().range([0.3, 0.5])
+			# 2: d3.scale.linear().range([0.2, 0.27])
+		scale_for: (order, domain) ->
+			if typeof(domain) == 'object' then domain = d3.values(domain)
+			if typeof(domain) == 'array' then domain = d3.extent(domain)
+			assert(domain)
+			scale = vis.opacity.scale_ranges[order].copy().domain(domain)
+			[a, b] = domain
+			if a == b
+			then do (v=scale.range()[1]) -> (any) -> v
+			else scale
+
 [vis.w, vis.h] = [
 	vis.box.node().clientWidth,
 	vis.box.node().clientHeight ]
@@ -54,14 +66,8 @@ vis.font_scale = d3.scale.linear()
 draw_hl_fade = (selection) ->
 	assert(selection? or vis.data)
 	hl_check = (d) -> not tags.highlight or d.tag == tags.highlight
-
-	edges = tags.edges.indexed[tags.highlight]
-	opacity_scale = vis.opacity.scale.copy()
-		.domain(d3.extent(d3.values(edges)))
-	[a, b] = opacity_scale.domain()
-	if a == b then do (v=opacity_scale.range()[1]) ->
-		opacity_scale = (n) -> v
-
+	edges = tags.edges.indexed[tags.highlight] or {}
+	opacity_scale = vis.opacity.scale_for(1, edges)
 	if not selection?
 		selection = vis.cloud.selectAll('text')
 			.data(vis.data, (d) -> d.tag)
