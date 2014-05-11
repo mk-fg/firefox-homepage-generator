@@ -1,20 +1,22 @@
 # XXX: tag font-size range, canvas size, etc should be configurable via templating
 
+assert = (condition, message) ->
+	# console.assert is kinda useless, as it doesn't actually stop the script
+	if not condition then throw message or 'Assertion failed'
+
 tags = d3.entries(ffhome_tags).sort((a, b) -> return b.value - a.value)
 fill = d3.scale.category20()
 
 vis_box = d3.select('#vis')
 [w, h] = [vis_box.node().clientWidth, vis_box.node().clientHeight]
-console.assert(h > 100 and w > 100, [w, h]) # hangs d3-cloud layout
-svg = vis_box.append('svg')
-	.attr('width', w)
-	.attr('height', h)
+svg = vis_box.select('svg').attr('width', w).attr('height', h)
+assert(h > 100 and w > 100, [w, h]) # hangs d3-cloud layout
 vis_bg = svg.append('g')
 vis = svg.append('g')
 	.attr('transform', 'translate(' + [w >> 1, h >> 1] + ')')
 
 font_scale = vis_box.style('font-size')
-console.assert(font_scale.match(/px$/), font_scale)
+assert(font_scale.match(/px$/), font_scale)
 font_scale = parseInt(font_scale)
 font_scale = [font_scale, font_scale * 3]
 font_scale = d3.scale['linear']().range(font_scale) # log, sqrt, linear
@@ -25,9 +27,10 @@ tag_links_box = d3.select('#tag-links')
 tag_highlight = null
 
 draw_data = null # cached from draw for draw_hl_fade
+draw_status_counter = 0
 
 draw_hl_fade = (selection) ->
-	console.assert(selection? or draw_data)
+	assert(selection? or draw_data)
 	hl_check = (d) -> not tag_highlight or d.text == tag_highlight
 	if not selection?
 		selection = vis.selectAll('text')
@@ -45,6 +48,7 @@ draw = (data, bounds) ->
 			h / Math.abs(bounds[1].y - h / 2) ) / 2\
 		else 1
 	draw_data = data
+	draw_status_counter = 0
 
 	text = vis.selectAll('text')
 		.data(data, (d) -> d.text)
@@ -81,6 +85,11 @@ draw = (data, bounds) ->
 		.duration(750)
 		.attr('transform', 'translate(' + [w >> 1, h >> 1] + ')scale(' + scale + ')')
 
+draw_status = ->
+	draw_status_counter += 1
+	d3.select('#vis-status div')
+		.style('width', ((draw_status_counter / tags.length) * 100) + '%')
+
 layout = d3.layout.cloud()
 	.size([w, h])
 	.spiral('archimedean') # archimedean, rectangular
@@ -89,8 +98,7 @@ layout = d3.layout.cloud()
 	.timeInterval(Infinity)
 	.words(tags)
 	.text((d) -> d.key)
-	# XXX: draw build progress as a css bar
-	# .on('word', status)
+	.on('word', draw_status)
 	.on('end', draw)
 	.start()
 

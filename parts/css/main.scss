@@ -3,14 +3,35 @@
 	margin: 0 auto;
 }
 
-#vis {
+.vis-box {
 	width: 100%;
-	height: 600px;
-}
 
-#vis text {
-	cursor: pointer;
-	&:hover { opacity: .7 !important; }
+	#vis {
+		svg {
+			width: 100%;
+			height: 600px;
+			text {
+				cursor: pointer;
+				&:hover { opacity: .7 !important; }
+			}
+		}
+	}
+
+	#vis-status {
+		width: 100%;
+		padding: 1px;
+		border: 1px solid black;
+		height: 3px;
+		text-align: left;
+
+		div {
+			width: 0;
+			margin: 0;
+			background: black;
+			height: 100%;
+		}
+	}
+
 }
 
 #tag-links, #backlog { display: none; }
