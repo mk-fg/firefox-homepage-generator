@@ -33,6 +33,7 @@ Examples:
 % ./ffhomegen.py -o ~/media/ffhome
 % ./ffhomegen.py -b ~/media/links.yaml
 % firefox $(./ffhomegen.py -v)
+% ./ffhomegen.py --help
 ```
 
 ### Requirements
@@ -54,15 +55,15 @@ Just typing "make" should do it with all these installed.
 Links
 --------------------
 
- * [bookmarkshome addon](http://bookmarkshome.mozdev.org/) (really old).
+ * [Blog post with a picture](http://blog.fraggod.net/2014/05/12/my-firefox-homepage.html)
+   (first version though, might be way out of date).
 
- * [mybookmarks addon](http://www.catsyawn.net/ma2ten/soft/mybookmarks_en.html) -
-   remake of bookmarkshome.
+ * FF addons: [bookmarkshome](http://bookmarkshome.mozdev.org/) (really old),
+   [mybookmarks](http://www.catsyawn.net/ma2ten/soft/mybookmarks_en.html)
+   (remake of bookmarkshome),
+   [bookmarks_html](https://addons.mozilla.org/en-US/firefox/addon/bookmarks_html/), etc.
 
- * [bookmarks_html addon](https://addons.mozilla.org/en-US/firefox/addon/bookmarks_html/) -
-   another random example of a similar addon.
-
- * FF even has similar thing built-in (but default-disabled for ages now) -
+ * FF has similar thing built-in (but default-disabled for ages now) -
    [browser.bookmarks.autoExportHTML](http://kb.mozillazine.org/Browser.bookmarks.autoExportHTML).
 
  * [Helpful explaination](http://stackoverflow.com/a/740183) of how ff bookmarks
