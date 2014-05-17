@@ -1,15 +1,15 @@
-# XXX: tag font-size range, canvas size, etc should be configurable via templating
+# XXX: tag font-size range, canvas size, etc should probably be configurable
 
 assert = (condition, message) ->
 	# console.assert is kinda useless, as it doesn't actually stop the script
 	if not condition then throw message or 'Assertion failed'
 
+# Data
 tags =
 	indexed: ffhome_tags
 	sorted:\
 		({tag: k, value: v.value, links: v.links} for own k,v of ffhome_tags)\
 			.sort((a, b) -> b.value - a.value)
-	links_box: d3.select('#tag-links')
 	edges:
 		sorted: ffhome_tag_edges.sort((a, b) -> a[2] - b[2])
 		indexed: do ->
@@ -20,6 +20,16 @@ tags =
 					index[t1][t2] = v
 			index
 	highlight: null
+
+links =
+	indexed: do ->
+		index = {}
+		for own k,v of ffhome_tags
+			for link in v.links
+				index[link.url] = index[link.url] or []
+				index[link.url].push(k)
+		index
+	box: d3.select('#tag-links')
 
 vis =
 	fill: d3.scale.category20()
@@ -43,6 +53,7 @@ vis =
 			then do (v=scale.range()[1]) -> (any) -> v
 			else scale
 
+# Canvas
 [vis.w, vis.h] = [
 	vis.box.node().clientWidth,
 	vis.box.node().clientHeight ]
@@ -56,12 +67,16 @@ vis.graph = vis.svg.append('g')
 	.classed('tag-graph': true)
 assert(vis.h > 100 and vis.w > 100, vis) # hangs d3-cloud layout
 
+# Font-size scale
 vis.font_scale = vis.box.style('font-size')
 assert(vis.font_scale.match(/px$/), vis)
 vis.font_scale = parseInt(vis.font_scale)
 vis.font_scale = d3.scale.linear()
 	.range([vis.font_scale, vis.font_scale * 3])
 	.domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value])
+
+
+# Layout, transitions
 
 draw_hl_fade = (selection) ->
 	assert(selection? or vis.data)
@@ -95,7 +110,7 @@ draw = (data, bounds) ->
 		.duration(1000)
 		.attr('transform', (d) -> 'translate(' + [d.x, d.y] + ')rotate(' + d.rotate + ')')
 		.style('font-size', (d) -> d.size + 'px')
-	draw_hl_fade(text_transition)
+	draw_hl_fade(text_transition) # must be chained to transition
 
 	text_transition = text.enter().append('text')
 		.attr('text-anchor', 'middle')
@@ -103,10 +118,11 @@ draw = (data, bounds) ->
 		.style('font-size', (d) -> d.size + 'px')
 		.on('click', (d) -> focus(d))
 		.style('opacity', 1e-6)
-	draw_hl_fade(text_transition)
+	draw_hl_fade(text_transition) # must be chained to transition
 
 	text.style('font-family', (d) -> d.font)
 		.style('fill', (d) -> vis.fill(d.tag))
+		.attr('title', (d) -> d.tag)
 		.text((d) -> d.tag)
 
 	exit_group = vis.bg.append('g')
@@ -141,27 +157,33 @@ cloud = d3.layout.cloud()
 	.start()
 
 
+# Tag links, controls
+
 d3.select('#vis-shuffle')
 	.on 'click', (d) ->
 		tags.highlight = null
 		cloud.stop().start()
-		tags.links_box.style('display', 'none')
+		links.box.style('display', 'none')
 
 focus = (d) ->
 	tags.highlight = d.tag
 	draw_hl_fade()
 
-	links = tags.links_box.select('ul')
+	text = links.box.select('ul')
 		.selectAll('li')
 			.data(tags.indexed[d.tag].links, (d, i) -> d.url)
-	links.enter()
+	text.enter()
 		.append('li')
 			.append('a')
 				.attr('href', (d) -> d.url)
+				.attr('title', (d) -> 'tags: ' + links.indexed[d.url].join(', '))
 				.text((d) -> d.title or d.url)
-	links.exit().remove()
-	tags.links_box.style('display', 'block')
+	text.exit().remove()
 
+	links.box.style('display', 'block')
+
+
+# Backlog
 
 if ffhome_links? and ffhome_links.length
 	backlog = d3.select('#backlog')
