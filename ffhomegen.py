@@ -221,7 +221,7 @@ def dump_tags(bms, dst):
 	tags, edges, links = defaultdict(int), defaultdict(int), defaultdict(dict)
 	for bm in bms.viewvalues():
 		title = bm.get('bm_title') or bm['title']
-		link = dict(title=title, url=bm['url'])
+		link = dict(title=title, url=bm['url'], frecency=bm['frecency'])
 		for tag in bm['bm_tags']:
 			tag = tag.lower()
 			tags[tag] += 1

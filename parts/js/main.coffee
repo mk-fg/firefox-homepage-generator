@@ -5,11 +5,13 @@ assert = (condition, message) ->
 	if not condition then throw message or 'Assertion failed'
 
 # Data
+for own tag, data of ffhome_tags
+	data.links.sort((a, b) -> b.frecency - a.frecency)
 tags =
 	indexed: ffhome_tags
 	sorted:\
-		({tag: k, value: v.value, links: v.links} for own k,v of ffhome_tags)\
-			.sort((a, b) -> b.value - a.value)
+		( {tag: tag, value: data.value, links: data.links}\
+			for own tag, data of ffhome_tags ).sort((a, b) -> b.value - a.value)
 	edges:
 		sorted: ffhome_tag_edges.sort((a, b) -> a[2] - b[2])
 		indexed: do ->
@@ -18,17 +20,21 @@ tags =
 				for [t1, t2] in [[t1, t2], [t2, t1]]
 					if not index[t1]? then index[t1] = {}
 					index[t1][t2] = v
-			index
+			return index
 	highlight: null
 
 links =
 	indexed: do ->
 		index = {}
-		for own k,v of ffhome_tags
-			for link in v.links
-				index[link.url] = index[link.url] or []
-				index[link.url].push(k)
-		index
+		for own tag, data of ffhome_tags
+			for link in data.links
+				index[link.url] = index[link.url] or do ->
+					link_copy = {tags: []}
+					for own k,v of link
+						link_copy[k] = v
+					return link_copy
+				index[link.url].tags.push(tag)
+		return index
 	box: d3.select('#tag-links')
 
 vis =
@@ -176,7 +182,9 @@ focus = (d) ->
 		.append('li')
 			.append('a')
 				.attr('href', (d) -> d.url)
-				.attr('title', (d) -> 'tags: ' + links.indexed[d.url].join(', '))
+				.attr('title', (d) ->
+					"frecency: #{d.frecency}\n" +
+						'tags: ' + links.indexed[d.url].tags.join(', '))
 				.text((d) -> d.title or d.url)
 	text.exit().remove()
 
