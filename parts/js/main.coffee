@@ -4,6 +4,19 @@ assert = (condition, message) ->
 	# console.assert is kinda useless, as it doesn't actually stop the script
 	if not condition then throw message or 'Assertion failed'
 
+sha256_bytes = (str, count=1) ->
+	assert(sjcl?.hash.sha256 and count <= 4*8)
+	[res, hash] = [[], sjcl.hash.sha256.hash(str)]
+	while hash
+		c = hash.pop()
+		for n in [0..3]
+			res.push(c & 0xff)
+			count -= 1
+			if count <= 0 then return res
+			c >>>= 8
+	assert(false)
+
+
 # Data
 for own tag, data of ffhome_tags
 	data.links.sort((a, b) -> b.frecency - a.frecency)
@@ -14,31 +27,35 @@ tags =
 			for own tag, data of ffhome_tags ).sort((a, b) -> b.value - a.value)
 	edges:
 		sorted: ffhome_tag_edges.sort((a, b) -> a[2] - b[2])
-		indexed: do ->
-			index = {}
+		indexed: do (index={}) ->
 			for [t1, t2, v] in ffhome_tag_edges
 				for [t1, t2] in [[t1, t2], [t2, t1]]
 					if not index[t1]? then index[t1] = {}
 					index[t1][t2] = v
-			return index
+			index
 	highlight: null
 
 links =
-	indexed: do ->
-		index = {}
+	indexed: do (index={}) ->
 		for own tag, data of ffhome_tags
 			for link in data.links
-				index[link.url] = index[link.url] or do ->
-					link_copy = {tags: []}
+				index[link.url] = index[link.url]\
+						or do (link_copy={tags: []}) ->
 					for own k,v of link
 						link_copy[k] = v
-					return link_copy
+					link_copy
 				index[link.url].tags.push(tag)
-		return index
+		for own url, link of index
+			link.tags.sort()
+		index
 	box: d3.select('#tag-links')
+	opacity: d3.scale.linear().range([0.7, 1])
 
 vis =
-	fill: d3.scale.category20()
+	color: do (level=0.3) ->
+		(str) ->
+			[h, s] = sha256_bytes(str, 2)
+			d3.hsl(h, s, level).toString()
 	box: d3.select('#vis')
 	data: null # cached from draw for draw_hl_fade
 	status: d3.select('#vis-status div')
@@ -59,7 +76,7 @@ vis =
 			then do (v=scale.range()[1]) -> (any) -> v
 			else scale
 
-# Canvas
+# Tag canvas
 [vis.w, vis.h] = [
 	vis.box.node().clientWidth,
 	vis.box.node().clientHeight ]
@@ -73,7 +90,7 @@ vis.graph = vis.svg.append('g')
 	.classed('tag-graph': true)
 assert(vis.h > 100 and vis.w > 100, vis) # hangs d3-cloud layout
 
-# Font-size scale
+# Tag font-size scale
 vis.font_scale = vis.box.style('font-size')
 assert(vis.font_scale.match(/px$/), vis)
 vis.font_scale = parseInt(vis.font_scale)
@@ -127,7 +144,7 @@ draw = (data, bounds) ->
 	draw_hl_fade(text_transition) # must be chained to transition
 
 	text.style('font-family', (d) -> d.font)
-		.style('fill', (d) -> vis.fill(d.tag))
+		.style('fill', (d) -> vis.color(d.tag))
 		.attr('title', (d) -> d.tag)
 		.text((d) -> d.tag)
 
@@ -175,18 +192,23 @@ focus = (d) ->
 	tags.highlight = d.tag
 	draw_hl_fade()
 
-	text = links.box.select('ul')
-		.selectAll('li')
-			.data(tags.indexed[d.tag].links, (d, i) -> d.url)
-	text.enter()
-		.append('li')
-			.append('a')
-				.attr('href', (d) -> d.url)
-				.attr('title', (d) ->
-					"frecency: #{d.frecency}\n" +
-						'tags: ' + links.indexed[d.url].tags.join(', '))
-				.text((d) -> d.title or d.url)
+	data = tags.indexed[tags.highlight].links
+	data_fext = d3.extent(data, (d) -> d.frecency)
+	data_fext[0] -= 0.0001
+	opacity = links.opacity.copy().domain(data_fext)
+	frecency_scale = d3.scale.linear().range([0, 100]).domain(data_fext)
+	text = links.box.select('ul').selectAll('li')
+		.data(data, (d, i) -> d.url)
+	text.enter().append('li') .append('a')
+		.attr('href', (d) -> d.url)
+		.style('opacity', (d) -> opacity(d.frecency))
+		.attr('title', (d) ->
+			frec_percent = Math.round(frecency_scale(d.frecency), 0)
+			tag_list = links.indexed[d.url].tags.join(', ')
+			"frecency: #{d.frecency} (#{frec_percent}%)\n tags: #{tag_list}")
+		.text((d) -> d.title or d.url)
 	text.exit().remove()
+	text.order()
 
 	links.box.style('display', 'block')
 
