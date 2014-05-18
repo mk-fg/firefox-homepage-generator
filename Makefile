@@ -2,6 +2,7 @@ BACKLOG =
 DESTDIR =
 DEBUG =
 
+OPTS =
 PARTS_PATH = parts
 
 JS_PATH = $(PARTS_PATH)/js
@@ -30,7 +31,7 @@ jade: $(HTML_FILES)
 	./_jade_tpl_render.py $< $@
 
 
-ffhomegen_args=
+ffhomegen_args= $(OPTS)
 ifdef BACKLOG
 	ffhomegen_args += -b $(BACKLOG)
 endif

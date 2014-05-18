@@ -265,7 +265,7 @@ def main(args=None):
 		help='Path to where the resulting html or homepage'
 			' directory with "index.html" will be generated (default: %(default)s).')
 	parser.add_argument('-f', '--output-format',
-		metavar='format', default='dir', # XXX: should be "fat"
+		metavar='format', default='dir',
 		choices=['fat', 'dir', 'dir-symlinks', 'dir-hardlinks', 'lean'],
 		help='Output format. Possible choices: fat, dir, lean (default: %(default)s).'
 			' "fat" will generate a single html file in --output-path, with all js/css assets embedded.'
@@ -339,10 +339,11 @@ def main(args=None):
 	if opts.output_format.startswith('dir'):
 		link_kws = dict((w, w in opts.output_format) for w in ['symlink', 'hardlink'])
 		copy_parts(opts.parts_path, opts.output_path, **link_kws)
-	with dump_tempfile(join(opts.output_path, 'tags.json')) as dst:
-		dump_tags(bookmarks, dst)
-	with dump_tempfile(join(opts.output_path, 'backlog.json')) as dst:
-		dump_backlog(backlog, dst)
+		with dump_tempfile(join(opts.output_path, 'tags.json')) as dst:
+			dump_tags(bookmarks, dst)
+		with dump_tempfile(join(opts.output_path, 'backlog.json')) as dst:
+			dump_backlog(backlog, dst)
+	else: raise NotImplementedError
 
 	if opts.print_html_url:
 		import urllib
