@@ -278,8 +278,6 @@
     });
     text.enter().append('li').append('a').attr('href', function(d) {
       return d.url;
-    }).style('opacity', function(d) {
-      return opacity(d.frecency);
     }).attr('title', function(d) {
       var frec_percent, tag_list;
       frec_percent = Math.round(frecency_scale(d.frecency), 0);
@@ -289,7 +287,9 @@
       return d.title || d.url;
     });
     text.exit().remove();
-    text.order();
+    text.style('opacity', function(d) {
+      return opacity(d.frecency);
+    }).order();
     return links.box.style('display', 'block');
   };
 
