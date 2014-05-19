@@ -284,7 +284,7 @@
       var frec_percent, tag_list;
       frec_percent = Math.round(frecency_scale(d.frecency), 0);
       tag_list = links.indexed[d.url].tags.join(', ');
-      return "frecency: " + d.frecency + " (" + frec_percent + "%)\n tags: " + tag_list;
+      return "frecency index: " + d.frecency + " (" + frec_percent + "% linear)\ntags: " + tag_list;
     }).text(function(d) {
       return d.title || d.url;
     });
