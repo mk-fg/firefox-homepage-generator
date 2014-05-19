@@ -7,10 +7,10 @@ bookmarks and a random selection of backlog ("read later") links.
 Templates and static assets in the "parts" directory will be used to construct
 result in one of a few ways:
 
+ * Build one "fat" html file with all the assets embedded in it.
+
  * Build html file and copy it along with separate static "assets" files into a
    target directory.
-
- * Build one "fat" html file with all the assets embedded in it (TODO).
 
  * Produce a single "lean" html file with asset links to various external CDN
    sources (kinda bad idea, TODO).

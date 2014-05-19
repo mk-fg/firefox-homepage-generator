@@ -9,7 +9,7 @@ from contextlib import contextmanager, closing
 from collections import defaultdict, OrderedDict, namedtuple
 from tempfile import NamedTemporaryFile
 import os, sys, io, types, re, random, json, shutil
-import sqlite3, ConfigParser
+import sqlite3, ConfigParser, mimetypes
 
 
 class AdHocException(Exception): pass
@@ -255,6 +255,81 @@ def copy_parts(src_path, dst_path, symlink=False, hardlink=False):
 			else: shutil.copyfile(src_file, dst_file)
 
 
+def dump_fat_html(src_path, dst, bookmarks, backlog):
+	dump_tag = lambda tag,body,indent='',opts='': dst.write('\n'.join([
+		'{}<{}{}>'.format(indent, tag, opts), body.strip('\n'), '{}</{}>'.format(indent, tag), '' ]))
+	dump_js = ft.partial(dump_tag, 'script')
+	dump_css = ft.partial(dump_tag, 'style')
+
+	not_found = {'json'}
+	for k in 'css', 'js', 'img':
+		if isdir(join(src_path, k)): not_found.add(k)
+
+	# Parsing html with regexps \o/
+	with open(join(src_path, 'index.html')) as src:
+		for line in iter(src.readline, ''):
+			match = re.search( r'^(?P<indent>\s*)'
+				r'<script src="(?P<src>[^"]+)"></script>\s*$', line )
+			if match:
+				indent, js_path = match.group('indent'), match.group('src')
+				if js_path.startswith('js/'):
+					assert js_path.endswith('.js'), js_path
+					with open(join(src_path, js_path)) as js_src: js = js_src.read()
+					dump_js(js, indent)
+					not_found.discard('js')
+				else:
+					assert js_path.endswith('.json'), js_path
+					json = js_path[:-5]
+					with io.BytesIO() as buff:
+						if json == 'tags':
+							dump_tags(bookmarks, buff)
+							dump_js(buff.getvalue(), indent)
+						elif json == 'backlog':
+							dump_backlog(backlog, buff)
+							dump_js(buff.getvalue(), indent)
+						else: raise ValueError(js_path)
+					not_found.discard('json')
+				continue
+
+			match = re.search( r'^(?P<indent>\s*)'
+				r'<link rel="stylesheet" href="(?P<src>[^"]+)">\s*$', line )
+			if match:
+				indent, css_path = match.group('indent'), match.group('src')
+				assert css_path.startswith('css/'), css_path
+				with open(join(src_path, css_path)) as css_src: css = css_src.read()
+				dump_css(css, indent)
+				not_found.discard('css')
+				continue
+
+			match = list(re.finditer(r'<img\s+[^>]+?\s+src="(?P<src>[^"]+)"(\s+[^>]+)?>\s*$', line))
+			if match:
+				pos = type('pos', (object,), dict(n=0))
+				def pos_update(m, write=False):
+					if write is not False:
+						if write is True: write = line[pos.n:m]
+						dst.write(write)
+					pos.n = m
+				pos_update(match[0].start(), True)
+				for match in match:
+					src = match.group('src')
+					pos_update(match.start('src'), True)
+					img_path = join(src_path, src)
+					mime, enc = mimetypes.guess_type(img_path)
+					with open(img_path) as img_src: img = img_src.read()
+					img = 'data:{};base64,{}'.format(mime, img.encode('base64').replace('\n', ''))
+					pos_update(match.end('src'), img)
+				pos_update(match.end(), True)
+				not_found.discard('img')
+				continue
+
+			if not match:
+				dst.write(line)
+				continue
+
+	assert not not_found, not_found
+
+
+
 def main(args=None):
 	import argparse
 	parser = argparse.ArgumentParser(
@@ -265,7 +340,7 @@ def main(args=None):
 		help='Path to where the resulting html or homepage'
 			' directory with "index.html" will be generated (default: %(default)s).')
 	parser.add_argument('-f', '--output-format',
-		metavar='format', default='dir',
+		metavar='format', default='fat',
 		choices=['fat', 'dir', 'dir-symlinks', 'dir-hardlinks', 'lean'],
 		help='Output format. Possible choices: fat, dir, lean (default: %(default)s).'
 			' "fat" will generate a single html file in --output-path, with all js/css assets embedded.'
@@ -336,7 +411,12 @@ def main(args=None):
 
 
 	## Install
-	if opts.output_format.startswith('dir'):
+	if opts.output_format == 'fat':
+		dst = opts.output_path
+		if isdir(opts.output_path): dst = join(dst, 'index.html')
+		with dump_tempfile(dst) as dst:
+			dump_fat_html(opts.parts_path, dst, bookmarks, backlog)
+	elif opts.output_format.startswith('dir'):
 		link_kws = dict((w, w in opts.output_format) for w in ['symlink', 'hardlink'])
 		copy_parts(opts.parts_path, opts.output_path, **link_kws)
 		with dump_tempfile(join(opts.output_path, 'tags.json')) as dst:
