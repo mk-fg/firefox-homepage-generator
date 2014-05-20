@@ -270,7 +270,7 @@
     data_fext = d3.extent(data, function(d) {
       return d.frecency;
     });
-    data_fext[0] -= 0.0001;
+    data_fext[0] -= 0.1;
     opacity = links.opacity.copy().domain(data_fext);
     frecency_scale = d3.scale.linear().range([0, 100]).domain(data_fext);
     text = links.box.select('ul').selectAll('li').data(data, function(d, i) {
