@@ -47,3 +47,6 @@ home: coffee sass jade
 
 home-only:
 	./ffhomegen.py $(ffhomegen_args)
+
+
+.PHONY: coffee sass jade home home-only
