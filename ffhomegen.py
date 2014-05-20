@@ -335,10 +335,9 @@ def main(args=None):
 	parser = argparse.ArgumentParser(
 		description='Tool to generate firefox homepage from bookmarks, history and other data.')
 
-	parser.add_argument('-o', '--output-path',
-		metavar='path', default=join(dirname(__file__), 'output'),
+	parser.add_argument('-o', '--output-path', metavar='path',
 		help='Path to where the resulting html or homepage'
-			' directory with "index.html" will be generated (default: %(default)s).')
+			' directory with "index.html" will be generated (default: "output" dir or "output.html").')
 	parser.add_argument('-f', '--output-format',
 		metavar='format', default='fat',
 		choices=['fat', 'dir', 'dir-symlinks', 'dir-hardlinks', 'lean'],
@@ -380,6 +379,10 @@ def main(args=None):
 	import logging
 	logging.basicConfig(level=logging.DEBUG if opts.debug else logging.WARNING)
 	log = logging.getLogger()
+
+	if not opts.output_path:
+		opts.output_path = join(dirname(__file__), 'output')
+		if opts.output_format == 'fat': opts.output_path += '.html'
 
 	if opts.debug:
 		global pyaml, dump

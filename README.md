@@ -30,7 +30,8 @@ output path (configurable via --output-path, see also --output-format).
 Examples:
 ```console
 % ./ffhomegen.py
-% ./ffhomegen.py -o ~/media/ffhome
+% ./ffhomegen.py -o ~/media/ffhome.html
+% ./ffhomegen.py -f dir -o ~/media/ffhome
 % ./ffhomegen.py -b ~/media/links.yaml
 % firefox $(./ffhomegen.py -v)
 % ./ffhomegen.py --help
