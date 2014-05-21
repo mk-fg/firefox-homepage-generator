@@ -1,8 +1,10 @@
 # XXX: tag font-size range, canvas size, etc should probably be configurable
 
-assert = (condition, message) ->
+'use strict'
+throw_err = (msg) -> throw new Error(msg or 'Unspecified Error')
+assert = (condition, msg) ->
 	# console.assert is kinda useless, as it doesn't actually stop the script
-	if not condition then throw message or 'Assertion failed'
+	if not condition then throw_err(msg or 'Assertion failed')
 
 sha256_bytes = (str, count=1) ->
 	assert(sjcl?.hash.sha256 and count <= 4*8)
