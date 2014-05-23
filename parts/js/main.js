@@ -119,6 +119,10 @@
   };
 
   vis = {
+    font: {
+      face: null,
+      extent: [0.9, 3.5]
+    },
     color: (function(level) {
       return function(str) {
         var h, s, _ref;
@@ -178,13 +182,13 @@
 
   assert(vis.h > 100 && vis.w > 100, vis);
 
-  vis.font_scale = vis.box.style('font-size');
+  vis.font.scale = vis.box.style('font-size');
 
-  assert(vis.font_scale.match(/px$/), vis);
+  assert(vis.font.scale.match(/px$/), vis);
 
-  vis.font_scale = parseInt(vis.font_scale);
+  vis.font.scale = parseInt(vis.font.scale);
 
-  vis.font_scale = d3.scale.linear().range([vis.font_scale, vis.font_scale * 3]).domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value]);
+  vis.font.scale = d3.scale.linear().range([vis.font.scale * vis.font.extent[0], vis.font.scale * vis.font.extent[1]]).domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value]);
 
   draw_hl_fade = function(selection) {
     var edges, hl_check, opacity_scale;
@@ -255,8 +259,8 @@
     return vis.status.style('width', ((vis.status_counter / tags.sorted.length) * 100) + '%');
   };
 
-  cloud = d3.layout.cloud().size([vis.w, vis.h]).spiral('archimedean').font('Impact').fontSize(function(d) {
-    return vis.font_scale(d.value);
+  cloud = d3.layout.cloud().size([vis.w, vis.h]).spiral('archimedean').fontSize(function(d) {
+    return vis.font.scale(d.value);
   }).timeInterval(Infinity).words(tags.sorted).text(function(d) {
     return d.tag;
   }).on('word', draw_status).on('end', draw).start();

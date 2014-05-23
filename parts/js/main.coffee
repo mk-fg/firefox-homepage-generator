@@ -54,6 +54,9 @@ links =
 	opacity: d3.scale.linear().range([0.7, 1])
 
 vis =
+	font:
+		face: null # e.g. 'impact', null = css/default
+		extent: [0.9, 3.5] # k * css/default
 	color: do (level=0.3) ->
 		(str) ->
 			[h, s] = sha256_bytes(str, 2)
@@ -93,11 +96,11 @@ vis.graph = vis.svg.append('g')
 assert(vis.h > 100 and vis.w > 100, vis) # hangs d3-cloud layout
 
 # Tag font-size scale
-vis.font_scale = vis.box.style('font-size')
-assert(vis.font_scale.match(/px$/), vis)
-vis.font_scale = parseInt(vis.font_scale)
-vis.font_scale = d3.scale.linear()
-	.range([vis.font_scale, vis.font_scale * 3])
+vis.font.scale = vis.box.style('font-size')
+assert(vis.font.scale.match(/px$/), vis)
+vis.font.scale = parseInt(vis.font.scale)
+vis.font.scale = d3.scale.linear()
+	.range([vis.font.scale * vis.font.extent[0], vis.font.scale * vis.font.extent[1]])
 	.domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value])
 
 
@@ -172,8 +175,7 @@ draw_status = ->
 cloud = d3.layout.cloud()
 	.size([vis.w, vis.h])
 	.spiral('archimedean') # archimedean, rectangular
-	.font('Impact')
-	.fontSize((d) -> vis.font_scale(d.value))
+	.fontSize((d) -> vis.font.scale(d.value))
 	.timeInterval(Infinity)
 	.words(tags.sorted)
 	.text((d) -> d.tag)
