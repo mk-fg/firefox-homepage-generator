@@ -70,5 +70,8 @@ Links
  * [Helpful explaination](http://stackoverflow.com/a/740183) of how ff bookmarks
    are organized in places.sqlite.
 
+ * [Description of "frecency" metric](https://wiki.mozilla.org/User:Jesse/NewFrecency?title=User:Jesse/NewFrecency),
+   used in places.sqlite, new ff versions' disk cache and maybe some other places.
+
  * There are some interesting upsides of building such page by hand -
    [blog post](http://utcc.utoronto.ca/~cks/space/blog/web/BookmarksAlternative) (not mine).
