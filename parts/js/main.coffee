@@ -205,13 +205,14 @@ focus = (d) ->
 		.data(data, (d, i) -> d.url)
 	text.enter().append('li') .append('a')
 		.attr('href', (d) -> d.url)
+		.text((d) -> d.title or d.url)
+	text.exit().remove()
+	text
+		.style('opacity', (d) -> opacity(d.frecency)).order()
 		.attr('title', (d) ->
 			frec_percent = Math.round(frecency_scale(d.frecency), 0)
 			tag_list = links.indexed[d.url].tags.join(', ')
 			"frecency index: #{d.frecency} (#{frec_percent}% linear)\ntags: #{tag_list}")
-		.text((d) -> d.title or d.url)
-	text.exit().remove()
-	text.style('opacity', (d) -> opacity(d.frecency)).order()
 
 	links.box.style('display', 'block')
 

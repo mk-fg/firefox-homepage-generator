@@ -287,18 +287,18 @@
     });
     text.enter().append('li').append('a').attr('href', function(d) {
       return d.url;
-    }).attr('title', function(d) {
-      var frec_percent, tag_list;
-      frec_percent = Math.round(frecency_scale(d.frecency), 0);
-      tag_list = links.indexed[d.url].tags.join(', ');
-      return "frecency index: " + d.frecency + " (" + frec_percent + "% linear)\ntags: " + tag_list;
     }).text(function(d) {
       return d.title || d.url;
     });
     text.exit().remove();
     text.style('opacity', function(d) {
       return opacity(d.frecency);
-    }).order();
+    }).order().attr('title', function(d) {
+      var frec_percent, tag_list;
+      frec_percent = Math.round(frecency_scale(d.frecency), 0);
+      tag_list = links.indexed[d.url].tags.join(', ');
+      return "frecency index: " + d.frecency + " (" + frec_percent + "% linear)\ntags: " + tag_list;
+    });
     return links.box.style('display', 'block');
   };
 
