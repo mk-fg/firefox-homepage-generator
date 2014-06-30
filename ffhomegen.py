@@ -159,9 +159,25 @@ class Link(namedtuple('Link', 'url title')):
 
 
 def links_get(path):
-	url_re = re.compile(r'^(?P<pre>.*)\b(?P<url>https?://(?P<title>\S+))(?P<post>.*)$')
-	links = list()
 	with open(path) as src:
+		url_re = re.compile(r'^(?P<pre>.*)\b(?P<url>https?://(?P<title>\S+))(?P<post>.*)$')
+		links = list()
+
+		def link_process(match):
+			pre, post, url, title = map( bytes.strip,
+				(match.group(n) for n in ['pre', 'post', 'url', 'title']) )
+			if len(title) > 100:
+				if '?' in title:
+					title_base, title_query = title.split('?', 1)
+					if len(title_query) > 20:
+						title = '{}?{}...'.format(title_base, title_query)
+				if len(title) > 120: title = '{}...'.format(title[:100])
+			return pre, post, url, title
+
+		def link_append(url, title):
+			title, url = map(force_unicode, [' '.join(title.split()), url])
+			links.append(Link(url, title))
+
 		for src_line in iter(src.readline, ''):
 			match = url_re.search(src_line)
 			indent = re.search(r'^\s', src_line)
@@ -173,8 +189,7 @@ def links_get(path):
 				continue
 			if not indent: title_pre = None
 
-			pre, post, url, title = map( bytes.strip,
-				(match.group(n) for n in ['pre', 'post', 'url', 'title']) )
+			pre, post, url, title = link_process(match)
 
 			if len(title) > 100:
 				if '?' in title:
@@ -218,8 +233,13 @@ def links_get(path):
 			if title_pre:
 				title = '{}[{}] :: {}'.format(title_pre, title_pre_n, title)
 				title_pre_n += 1
-			title, url = map(force_unicode, [' '.join(title.split()), url])
-			links.append(Link(url, title))
+			link_append(url, title)
+
+			while True: # make sure all links in line are processed
+				match = url_re.search(post)
+				if not match: break
+				pre, post, url, title = link_process(match)
+				link_append(url, title)
 
 	return links
 
@@ -437,7 +457,9 @@ def main(args=None):
 
 	parser.add_argument('-l', '--links', metavar='path',
 		help='Path to a file with links (one per line) to display on the page.'
-			' Aside from link, lines can have title for these.')
+			' Aside from link, lines can have title for these in pretty much any format.'
+			' Unlike --backlog, this one is supposed to be hand-written,'
+				' so anything matching web link regexp on a separate line will be displayed as a link.')
 	parser.add_argument('-b', '--backlog', metavar='path',
 		help='Path to yaml with a backlog of random links to visit.'
 			' Format should be any depth of nested dicts or lists, with dicts or two-element'
