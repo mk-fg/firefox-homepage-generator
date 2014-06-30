@@ -26,7 +26,7 @@ body {
       background: #ccc;
       height: 100%; }
 
-#tag-links, #backlog {
+#tag-links, #backlog, #links {
   display: none; }
 
 #vis-shuffle {

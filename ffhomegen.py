@@ -12,6 +12,15 @@ import os, sys, io, types, re, random, json, shutil
 import sqlite3, ConfigParser, mimetypes
 
 
+def force_bytes(bytes_or_unicode, encoding='utf-8', errors='backslashreplace'):
+	if isinstance(bytes_or_unicode, bytes): return bytes_or_unicode
+	return bytes_or_unicode.encode(encoding, errors)
+
+def force_unicode(bytes_or_unicode, encoding='utf-8', errors='replace'):
+	if isinstance(bytes_or_unicode, unicode): return bytes_or_unicode
+	return bytes_or_unicode.decode(encoding, errors)
+
+
 class AdHocException(Exception): pass
 
 def get_profile_dir(profile):
@@ -148,6 +157,72 @@ class Link(namedtuple('Link', 'url title')):
 		if title: title = unicode(title)
 		return super(Link, cls).__new__(cls, url, title)
 
+
+def links_get(path):
+	url_re = re.compile(r'^(?P<pre>.*)\b(?P<url>https?://(?P<title>\S+))(?P<post>.*)$')
+	links = list()
+	with open(path) as src:
+		for src_line in iter(src.readline, ''):
+			match = url_re.search(src_line)
+			indent = re.search(r'^\s', src_line)
+
+			if not match:
+				if not indent and src_line.strip().endswith(':'): # yaml/rst-like group
+					title_pre_n, title_pre = 0, src_line.strip().rstrip(':')
+					if len(title_pre) > 50: title_pre = '{}...'.format(title_pre[:30])
+				continue
+			if not indent: title_pre = None
+
+			pre, post, url, title = map( bytes.strip,
+				(match.group(n) for n in ['pre', 'post', 'url', 'title']) )
+
+			if len(title) > 100:
+				if '?' in title:
+					title_base, title_query = title.split('?', 1)
+					if len(title_query) > 20:
+						title = '{}?{}...'.format(title_base, title_query)
+				if len(title) > 120: title = '{}...'.format(title[:100])
+
+			if pre.endswith(':') and not post: # looks like yaml notation
+				import yaml
+				src_yaml = src_line
+
+				if not pre.rstrip(':'): # split multiline key on top
+					pos = src.tell()
+					try:
+						src.seek(max(0, pos - 300 * 10))
+						ctx_key, ctx = list(), src.read(pos - src.tell()).split('\n')
+						for line in reversed(ctx):
+							if not line: continue
+							ctx_key.append(line)
+							if line.strip().startswith('?'):
+								ctx_indent = line.split('?', 1)[0]
+								break
+						else: ctx_key = None
+						if ctx_key:
+							ctx, ctx_indent_len = list(reversed(ctx_key)), len(ctx_indent)
+							for n, line in enumerate(ctx):
+								if not line.startswith(ctx_indent): break
+								ctx[n] = line[ctx_indent_len:]
+							else: src_yaml = '\n'.join(ctx)
+					finally: src.seek(pos)
+
+				try:
+					data = yaml.load(src_yaml)
+					if not isinstance(data, dict): raise ValueError
+					try: (title, url), = data.items()
+					except ValueError: pass
+					else: title, url = map(force_bytes, [title, url])
+				except: title = pre.rsplit(':')
+
+			if title_pre:
+				title = '{}[{}] :: {}'.format(title_pre, title_pre_n, title)
+				title_pre_n += 1
+			title, url = map(force_unicode, [' '.join(title.split()), url])
+			links.append(Link(url, title))
+
+	return links
+
 def backlog_get(path):
 	import yaml
 	with open(path) as src: backlog = yaml.load(src)
@@ -237,6 +312,10 @@ def dump_tags(bms, dst):
 		.format(json.dumps(tags), json.dumps(edges)) )
 
 def dump_backlog(links, dst):
+	dst.write('ffhome_backlog={};\n'.format(json.dumps(
+		list(dict(title=link.title, url=link.url) for link in links) )))
+
+def dump_links(links, dst):
 	dst.write('ffhome_links={};\n'.format(json.dumps(
 		list(dict(title=link.title, url=link.url) for link in links) )))
 
@@ -255,7 +334,7 @@ def copy_parts(src_path, dst_path, symlink=False, hardlink=False):
 			else: shutil.copyfile(src_file, dst_file)
 
 
-def dump_fat_html(src_path, dst, bookmarks, backlog):
+def dump_fat_html(src_path, dst, bookmarks, backlog, links):
 	dump_tag = lambda tag,body,indent='',opts='': dst.write('\n'.join([
 		'{}<{}{}>'.format(indent, tag, opts), body.strip('\n'), '{}</{}>'.format(indent, tag), '' ]))
 	dump_js = ft.partial(dump_tag, 'script')
@@ -286,6 +365,9 @@ def dump_fat_html(src_path, dst, bookmarks, backlog):
 							dump_js(buff.getvalue(), indent)
 						elif json == 'backlog':
 							dump_backlog(backlog, buff)
+							dump_js(buff.getvalue(), indent)
+						elif json == 'links':
+							dump_links(links, buff)
 							dump_js(buff.getvalue(), indent)
 						else: raise ValueError(js_path)
 					not_found.discard('json')
@@ -353,6 +435,9 @@ def main(args=None):
 		help='Path to directory with html, js and css files (default: %(default)s).'
 			' JSON files with data will be generated there, to be loaded (or embedded) into html.')
 
+	parser.add_argument('-l', '--links', metavar='path',
+		help='Path to a file with links (one per line) to display on the page.'
+			' Aside from link, lines can have title for these.')
 	parser.add_argument('-b', '--backlog', metavar='path',
 		help='Path to yaml with a backlog of random links to visit.'
 			' Format should be any depth of nested dicts or lists, with dicts or two-element'
@@ -405,6 +490,10 @@ def main(args=None):
 
 	bookmarks = bookmarks_get(join(profile_dir, 'places.sqlite'), timeout=opts.db_lock_timeout)
 
+	if opts.links:
+		links = links_get(opts.links)
+	else: links = list()
+
 	if opts.backlog:
 		backlog = backlog_get(opts.backlog)
 		backlog = backlog_process(backlog, opts.backlog_pick)
@@ -418,7 +507,7 @@ def main(args=None):
 		dst = opts.output_path
 		if isdir(opts.output_path): dst = join(dst, 'index.html')
 		with dump_tempfile(dst) as dst:
-			dump_fat_html(opts.parts_path, dst, bookmarks, backlog)
+			dump_fat_html(opts.parts_path, dst, bookmarks, backlog, links)
 	elif opts.output_format.startswith('dir'):
 		link_kws = dict((w, w in opts.output_format) for w in ['symlink', 'hardlink'])
 		copy_parts(opts.parts_path, opts.output_path, **link_kws)
@@ -426,6 +515,8 @@ def main(args=None):
 			dump_tags(bookmarks, dst)
 		with dump_tempfile(join(opts.output_path, 'backlog.json')) as dst:
 			dump_backlog(backlog, dst)
+		with dump_tempfile(join(opts.output_path, 'links.json')) as dst:
+			dump_links(links, dst)
 	else: raise NotImplementedError
 
 	if opts.print_html_url:

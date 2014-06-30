@@ -302,14 +302,24 @@
     return links.box.style('display', 'block');
   };
 
-  if ((typeof ffhome_links !== "undefined" && ffhome_links !== null) && ffhome_links.length) {
+  if ((typeof ffhome_backlog !== "undefined" && ffhome_backlog !== null) && ffhome_backlog.length) {
     backlog = d3.select('#backlog');
-    backlog.select('ul').selectAll('li').data(ffhome_links).enter().append('li').append('a').attr('href', function(d) {
+    backlog.select('ul').selectAll('li').data(ffhome_backlog).enter().append('li').append('a').attr('href', function(d) {
       return d.url;
     }).text(function(d) {
       return d.title || d.url;
     });
     backlog.style('display', 'block');
+  }
+
+  if ((typeof ffhome_links !== "undefined" && ffhome_links !== null) && ffhome_links.length) {
+    links = d3.select('#links');
+    links.select('ul').selectAll('li').data(ffhome_links).enter().append('li').append('a').attr('href', function(d) {
+      return d.url;
+    }).text(function(d) {
+      return d.title || d.url;
+    });
+    links.style('display', 'block');
   }
 
 }).call(this);

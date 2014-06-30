@@ -1,4 +1,5 @@
 BACKLOG =
+LINKS =
 DESTDIR =
 DEBUG =
 
@@ -34,6 +35,9 @@ jade: $(HTML_FILES)
 ffhomegen_args= $(OPTS)
 ifdef BACKLOG
 	ffhomegen_args += -b $(BACKLOG)
+endif
+ifdef LINKS
+	ffhomegen_args += -l $(LINKS)
 endif
 ifdef DESTDIR
 	ffhomegen_args += -o $(DESTDIR)

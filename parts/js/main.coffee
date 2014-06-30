@@ -219,13 +219,24 @@ focus = (d) ->
 
 # Backlog
 
-if ffhome_links? and ffhome_links.length
+if ffhome_backlog? and ffhome_backlog.length
 	backlog = d3.select('#backlog')
 	backlog.select('ul')
+		.selectAll('li')
+			.data(ffhome_backlog)
+		.enter().append('li')
+			.append('a')
+				.attr('href', (d) -> d.url)
+				.text((d) -> d.title or d.url)
+	backlog.style('display', 'block')
+
+if ffhome_links? and ffhome_links.length
+	links = d3.select('#links')
+	links.select('ul')
 		.selectAll('li')
 			.data(ffhome_links)
 		.enter().append('li')
 			.append('a')
 				.attr('href', (d) -> d.url)
 				.text((d) -> d.title or d.url)
-	backlog.style('display', 'block')
+	links.style('display', 'block')
