@@ -228,7 +228,7 @@ def links_get(path):
 					try: (title, url), = data.items()
 					except ValueError: pass
 					else: title, url = map(force_bytes, [title, url])
-				except: title = pre.rsplit(':')
+				except: title = pre.rstrip(':')
 
 			if title_pre:
 				title = '{}[{}] :: {}'.format(title_pre, title_pre_n, title)
