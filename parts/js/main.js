@@ -81,41 +81,40 @@
         return index;
       })({})
     },
-    highlight: null
-  };
-
-  links = {
-    indexed: (function(index) {
-      var link, url, _i, _len, _ref;
-      for (tag in ffhome_tags) {
-        if (!__hasProp.call(ffhome_tags, tag)) continue;
-        data = ffhome_tags[tag];
-        _ref = data.links;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          link = _ref[_i];
-          index[link.url] = index[link.url] || (function(link_copy) {
-            var k, v;
-            for (k in link) {
-              if (!__hasProp.call(link, k)) continue;
-              v = link[k];
-              link_copy[k] = v;
-            }
-            return link_copy;
-          })({
-            tags: []
-          });
-          index[link.url].tags.push(tag);
+    highlight: null,
+    links: {
+      indexed: (function(index) {
+        var link, url, _i, _len, _ref;
+        for (tag in ffhome_tags) {
+          if (!__hasProp.call(ffhome_tags, tag)) continue;
+          data = ffhome_tags[tag];
+          _ref = data.links;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            link = _ref[_i];
+            index[link.url] = index[link.url] || (function(link_copy) {
+              var k, v;
+              for (k in link) {
+                if (!__hasProp.call(link, k)) continue;
+                v = link[k];
+                link_copy[k] = v;
+              }
+              return link_copy;
+            })({
+              tags: []
+            });
+            index[link.url].tags.push(tag);
+          }
         }
-      }
-      for (url in index) {
-        if (!__hasProp.call(index, url)) continue;
-        link = index[url];
-        link.tags.sort();
-      }
-      return index;
-    })({}),
-    box: d3.select('#tag-links'),
-    opacity: d3.scale.linear().range([0.7, 1])
+        for (url in index) {
+          if (!__hasProp.call(index, url)) continue;
+          link = index[url];
+          link.tags.sort();
+        }
+        return index;
+      })({}),
+      box: d3.select('#tag-links'),
+      opacity: d3.scale.linear().range([0.7, 1])
+    }
   };
 
   vis = {
@@ -268,7 +267,7 @@
   d3.select('#vis-shuffle').on('click', function(d) {
     tags.highlight = null;
     cloud.stop().start();
-    return links.box.style('display', 'none');
+    return tags.links.box.style('display', 'none');
   });
 
   focus = function(d) {
@@ -280,9 +279,9 @@
       return d.frecency;
     });
     data_fext[0] -= 0.1;
-    opacity = links.opacity.copy().domain(data_fext);
+    opacity = tags.links.opacity.copy().domain(data_fext);
     frecency_scale = d3.scale.linear().range([0, 100]).domain(data_fext);
-    text = links.box.select('ul').selectAll('li').data(data, function(d, i) {
+    text = tags.links.box.select('ul').selectAll('li').data(data, function(d, i) {
       return d.url;
     });
     text.enter().append('li').append('a').attr('href', function(d) {
@@ -296,10 +295,10 @@
     }).order().attr('title', function(d) {
       var frec_percent, tag_list;
       frec_percent = Math.round(frecency_scale(d.frecency), 0);
-      tag_list = links.indexed[d.url].tags.join(', ');
+      tag_list = tags.links.indexed[d.url].tags.join(', ');
       return "frecency index: " + d.frecency + " (" + frec_percent + "% linear)\ntags: " + tag_list;
     });
-    return links.box.style('display', 'block');
+    return tags.links.box.style('display', 'block');
   };
 
   if ((typeof ffhome_backlog !== "undefined" && ffhome_backlog !== null) && ffhome_backlog.length) {

@@ -36,22 +36,21 @@ tags =
 					index[t1][t2] = v
 			index
 	highlight: null
-
-links =
-	indexed: do (index={}) ->
-		for own tag, data of ffhome_tags
-			for link in data.links
-				index[link.url] = index[link.url]\
-						or do (link_copy={tags: []}) ->
-					for own k,v of link
-						link_copy[k] = v
-					link_copy
-				index[link.url].tags.push(tag)
-		for own url, link of index
-			link.tags.sort()
-		index
-	box: d3.select('#tag-links')
-	opacity: d3.scale.linear().range([0.7, 1])
+	links:
+		indexed: do (index={}) ->
+			for own tag, data of ffhome_tags
+				for link in data.links
+					index[link.url] = index[link.url]\
+							or do (link_copy={tags: []}) ->
+						for own k,v of link
+							link_copy[k] = v
+						link_copy
+					index[link.url].tags.push(tag)
+			for own url, link of index
+				link.tags.sort()
+			index
+		box: d3.select('#tag-links')
+		opacity: d3.scale.linear().range([0.7, 1])
 
 vis =
 	font:
@@ -190,7 +189,7 @@ d3.select('#vis-shuffle')
 	.on 'click', (d) ->
 		tags.highlight = null
 		cloud.stop().start()
-		links.box.style('display', 'none')
+		tags.links.box.style('display', 'none')
 
 focus = (d) ->
 	tags.highlight = d.tag
@@ -199,9 +198,9 @@ focus = (d) ->
 	data = tags.indexed[tags.highlight].links
 	data_fext = d3.extent(data, (d) -> d.frecency)
 	data_fext[0] -= 0.1
-	opacity = links.opacity.copy().domain(data_fext)
+	opacity = tags.links.opacity.copy().domain(data_fext)
 	frecency_scale = d3.scale.linear().range([0, 100]).domain(data_fext)
-	text = links.box.select('ul').selectAll('li')
+	text = tags.links.box.select('ul').selectAll('li')
 		.data(data, (d, i) -> d.url)
 	text.enter().append('li') .append('a')
 		.attr('href', (d) -> d.url)
@@ -211,10 +210,10 @@ focus = (d) ->
 		.style('opacity', (d) -> opacity(d.frecency)).order()
 		.attr('title', (d) ->
 			frec_percent = Math.round(frecency_scale(d.frecency), 0)
-			tag_list = links.indexed[d.url].tags.join(', ')
+			tag_list = tags.links.indexed[d.url].tags.join(', ')
 			"frecency index: #{d.frecency} (#{frec_percent}% linear)\ntags: #{tag_list}")
 
-	links.box.style('display', 'block')
+	tags.links.box.style('display', 'block')
 
 
 # Backlog
