@@ -300,8 +300,8 @@ def backlog_process(backlog, spec):
 
 @contextmanager
 def dump_tempfile(path):
-	kws = dict( suffix='.', delete=False,
-		dir=dirname(path), prefix=basename(path) )
+	kws = dict( delete=False,
+		dir=dirname(path), prefix=basename(path)+'.' )
 	with NamedTemporaryFile(**kws) as tmp:
 		try:
 			yield tmp
