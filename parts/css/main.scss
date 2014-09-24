@@ -8,6 +8,13 @@ body { background: #e0f0ec; }
 .vis-box {
 	width: 100%;
 
+	#tag-list {
+		position: absolute;
+		margin-left: -3em;
+		ul { margin-left: -10em; }
+		&>a, ul { display: none; }
+	}
+
 	#vis {
 		svg {
 			width: 100%;

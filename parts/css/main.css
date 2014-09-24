@@ -7,6 +7,13 @@ body {
 
 .vis-box {
   width: 100%; }
+  .vis-box #tag-list {
+    position: absolute;
+    margin-left: -3em; }
+    .vis-box #tag-list ul {
+      margin-left: -10em; }
+    .vis-box #tag-list > a, .vis-box #tag-list ul {
+      display: none; }
   .vis-box #vis svg {
     width: 100%;
     height: 600px; }

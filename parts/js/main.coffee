@@ -18,9 +18,20 @@ sha256_bytes = (str, count=1) ->
 			c >>>= 8
 	assert(false)
 
+tiered_scale_for = (scale_ranges, order, domain) ->
+	if typeof(domain) == 'object' then domain = d3.values(domain)
+	if typeof(domain) == 'array' then domain = d3.extent(domain)
+	assert(domain)
+	scale = scale_ranges[order].copy().domain(domain)
+	[a, b] = domain
+	if a == b
+	then do (v=scale.range()[1]) -> (any) -> v
+	else scale
+
 
 # Data
 for own tag, data of ffhome_tags
+	data.tag = tag
 	data.links.sort((a, b) -> b.frecency - a.frecency)
 tags =
 	indexed: ffhome_tags
@@ -51,6 +62,18 @@ tags =
 			index
 		box: d3.select('#tag-links')
 		opacity: d3.scale.linear().range([0.7, 1])
+	slist:
+		button: d3.select('#tag-list a')
+		box: d3.select('#tag-list ul')
+		hidden: true
+		names: (tag for own tag, data of ffhome_tags).sort()
+		opacity:
+			highlight: 1
+			unrelated: 0.3
+			scale_ranges:
+				1: d3.scale.linear().range([0.35, 0.6])
+			scale_for: (order, domain) -> tiered_scale_for(tags.slist.opacity.scale_ranges, order, domain)
+
 
 vis =
 	font:
@@ -70,15 +93,7 @@ vis =
 		scale_ranges:
 			1: d3.scale.linear().range([0.3, 0.5])
 			# 2: d3.scale.linear().range([0.2, 0.27])
-		scale_for: (order, domain) ->
-			if typeof(domain) == 'object' then domain = d3.values(domain)
-			if typeof(domain) == 'array' then domain = d3.extent(domain)
-			assert(domain)
-			scale = vis.opacity.scale_ranges[order].copy().domain(domain)
-			[a, b] = domain
-			if a == b
-			then do (v=scale.range()[1]) -> (any) -> v
-			else scale
+		scale_for: (order, domain) -> tiered_scale_for(vis.opacity.scale_ranges, order, domain)
 
 # Tag canvas
 [vis.w, vis.h] = [
@@ -105,20 +120,23 @@ vis.font.scale = d3.scale.linear()
 
 # Layout, transitions
 
-draw_hl_fade = (selection) ->
-	assert(selection? or vis.data)
-	hl_check = (d) -> not tags.highlight or d.tag == tags.highlight
+draw_hl_fade = (selection, opts, d_filter, edges) ->
 	edges = tags.edges.indexed[tags.highlight] or {}
-	opacity_scale = vis.opacity.scale_for(1, edges)
+	do (hl_tag=tags.highlight, scale=opts.scale_for(1, edges)) ->
+		selection.transition()
+			.duration(1000)
+			.style 'opacity', (d) ->
+				if d_filter then d = d_filter(d)
+				if not hl_tag or d == hl_tag then return opts.highlight
+				if not edges[d]? then return opts.unrelated
+				scale(edges[d])
+
+draw_hl_fade_vis = (selection) ->
+	assert(selection? or vis.data)
 	if not selection?
 		selection = vis.cloud.selectAll('text')
 			.data(vis.data, (d) -> d.tag)
-	selection.transition()
-		.duration(1000)
-		.style 'opacity', (d) ->
-			if hl_check(d) then return vis.opacity.highlight
-			if not edges[d.tag]? then return vis.opacity.unrelated
-			opacity_scale(edges[d.tag])
+	draw_hl_fade(selection, vis.opacity, (d) -> d.tag)
 
 draw = (data, bounds) ->
 	scale = if bounds\
@@ -137,7 +155,7 @@ draw = (data, bounds) ->
 		.duration(1000)
 		.attr('transform', (d) -> 'translate(' + [d.x, d.y] + ')rotate(' + d.rotate + ')')
 		.style('font-size', (d) -> d.size + 'px')
-	draw_hl_fade(text_transition) # must be chained to transition
+	draw_hl_fade_vis(text_transition) # must be chained to transition
 
 	text_transition = text.enter().append('text')
 		.attr('text-anchor', 'middle')
@@ -145,7 +163,7 @@ draw = (data, bounds) ->
 		.style('font-size', (d) -> d.size + 'px')
 		.on('click', (d) -> focus(d))
 		.style('opacity', 1e-6)
-	draw_hl_fade(text_transition) # must be chained to transition
+	draw_hl_fade_vis(text_transition) # must be chained to transition
 
 	text.style('font-family', (d) -> d.font)
 		.style('fill', (d) -> vis.color(d.tag))
@@ -193,7 +211,7 @@ d3.select('#vis-shuffle')
 
 focus = (d) ->
 	tags.highlight = d.tag
-	draw_hl_fade()
+	draw_hl_fade_vis()
 
 	data = tags.indexed[tags.highlight].links
 	data_fext = d3.extent(data, (d) -> d.frecency)
@@ -214,6 +232,27 @@ focus = (d) ->
 			"frecency index: #{d.frecency} (#{frec_percent}% linear)\ntags: #{tag_list}")
 
 	tags.links.box.style('display', 'block')
+
+
+# Sorted tag list
+
+tags.slist.button.on 'click', (d) ->
+	tags.slist.hidden = not tags.slist.hidden
+	tags.slist.box.style( 'display',
+		if not tags.slist.hidden then 'block'  else 'none' )
+	d3.event.preventDefault()
+
+tags_slist = tags.slist.box.selectAll('li')
+	.data(tags.slist.names)
+tags_slist.enter().append('li').append('a')
+	.attr('href', '#')
+	.text((d) -> d)
+	.on 'click', (d, ev) ->
+		focus(tags.indexed[d])
+		draw_hl_fade(tags_slist, tags.slist.opacity)
+		d3.event.preventDefault()
+
+tags.slist.button.style('display', 'block')
 
 
 # Backlog
