@@ -29,7 +29,8 @@ tiered_scale_for = (scale_ranges, order, domain) ->
 	else scale
 
 
-# Data
+## Data
+
 for own tag, data of ffhome_tags
 	data.tag = tag
 	data.links.sort((a, b) -> b.frecency - a.frecency)
@@ -74,7 +75,6 @@ tags =
 				1: d3.scale.linear().range([0.35, 0.6])
 			scale_for: (order, domain) -> tiered_scale_for(tags.slist.opacity.scale_ranges, order, domain)
 
-
 vis =
 	font:
 		face: null # e.g. 'impact', null = css/default
@@ -118,7 +118,7 @@ vis.font.scale = d3.scale.linear()
 	.domain([+tags.sorted[tags.sorted.length - 1].value, +tags.sorted[0].value])
 
 
-# Layout, transitions
+## Layout, transitions
 
 draw_hl_fade = (selection, opts, d_filter, edges) ->
 	edges = tags.edges.indexed[tags.highlight] or {}
@@ -201,7 +201,7 @@ cloud = d3.layout.cloud()
 	.start()
 
 
-# Tag links, controls
+## Tag links, controls
 
 d3.select('#vis-shuffle')
 	.on 'click', (d) ->
@@ -234,7 +234,7 @@ focus = (d) ->
 	tags.links.box.style('display', 'block')
 
 
-# Sorted tag list
+## Sorted tag list
 
 tags.slist.button.on 'click', (d) ->
 	tags.slist.hidden = not tags.slist.hidden
@@ -255,7 +255,7 @@ tags_slist.enter().append('li').append('a')
 tags.slist.button.style('display', 'block')
 
 
-# Backlog
+## Backlog
 
 if ffhome_backlog? and ffhome_backlog.length
 	backlog = d3.select('#backlog')
