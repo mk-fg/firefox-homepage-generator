@@ -223,7 +223,7 @@ def links_get(path):
 					finally: src.seek(pos)
 
 				try:
-					data = yaml.load(src_yaml)
+					data = yaml.safe_load(src_yaml)
 					if not isinstance(data, dict): raise ValueError
 					try: (title, url), = data.items()
 					except ValueError: pass
@@ -245,7 +245,7 @@ def links_get(path):
 
 def backlog_get(path):
 	import yaml
-	with open(path) as src: backlog = yaml.load(src)
+	with open(path) as src: backlog = yaml.safe_load(src)
 
 	def process_layer(data, path=None):
 		if path is None: path = list()
