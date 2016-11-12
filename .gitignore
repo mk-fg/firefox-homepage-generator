@@ -1,6 +1,7 @@
 /parts/*.json
 /backlog.yaml
 /links.txt
+/notes.txt
 /output
 /output.html
 *.pyc
