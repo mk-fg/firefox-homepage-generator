@@ -278,3 +278,11 @@ if ffhome_links? and ffhome_links.length
 				.attr('href', (d) -> d.url)
 				.text((d) -> d.title or d.url)
 	links.style('display', 'block')
+
+
+## Notes
+
+if ffhome_notes? and ffhome_notes
+	notes = d3.select('#notes')
+	notes.select('code').text(ffhome_notes)
+	notes.style('display', 'block')

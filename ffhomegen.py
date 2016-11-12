@@ -298,6 +298,11 @@ def backlog_process(backlog, spec):
 	else: raise ValueError(spec)
 
 
+def notes_get(path):
+	with open(path) as src:
+		return src.read().strip().decode('utf-8')
+
+
 @contextmanager
 def dump_tempfile(path):
 	kws = dict( delete=False,
@@ -339,6 +344,9 @@ def dump_links(links, dst):
 	dst.write('ffhome_links={};\n'.format(json.dumps(
 		list(dict(title=link.title, url=link.url) for link in links) )))
 
+def dump_notes(notes, dst):
+	dst.write('ffhome_notes={};\n'.format(json.dumps(notes)))
+
 def copy_parts(src_path, dst_path, symlink=False, hardlink=False):
 	assert not (symlink and hardlink)
 	src_path_abs = realpath(src_path)
@@ -354,7 +362,7 @@ def copy_parts(src_path, dst_path, symlink=False, hardlink=False):
 			else: shutil.copyfile(src_file, dst_file)
 
 
-def dump_fat_html(src_path, dst, bookmarks, backlog, links):
+def dump_fat_html(src_path, dst, json_dumps):
 	dump_tag = lambda tag,body,indent='',opts='': dst.write('\n'.join([
 		'{}<{}{}>'.format(indent, tag, opts), body.strip('\n'), '{}</{}>'.format(indent, tag), '' ]))
 	dump_js = ft.partial(dump_tag, 'script')
@@ -380,14 +388,8 @@ def dump_fat_html(src_path, dst, bookmarks, backlog, links):
 					assert js_path.endswith('.json'), js_path
 					json = js_path[:-5]
 					with io.BytesIO() as buff:
-						if json == 'tags':
-							dump_tags(bookmarks, buff)
-							dump_js(buff.getvalue(), indent)
-						elif json == 'backlog':
-							dump_backlog(backlog, buff)
-							dump_js(buff.getvalue(), indent)
-						elif json == 'links':
-							dump_links(links, buff)
+						if json in json_dumps:
+							json_dumps[json](buff)
 							dump_js(buff.getvalue(), indent)
 						else: raise ValueError(js_path)
 					not_found.discard('json')
@@ -469,6 +471,9 @@ def main(args=None):
 	parser.add_argument('-x', '--backlog-pick', metavar='spec', default='random-30',
 		help='How to pick/represent which backlog links to display.'
 			' Supported choices: random-<num>, all (default: %(default)s).')
+	parser.add_argument('-n', '--notes', metavar='path',
+		help='Path to any text file to include as "Notes" at the bottom of the page.'
+			' Useful for rarely-modified reminder/reference stuff, e.g. tricks, hotkeys, commands.')
 
 	parser.add_argument('-P', '--profile', metavar='name/key/path',
 		help='Full firefox profile name, profile directory name'
@@ -511,11 +516,8 @@ def main(args=None):
 	log.debug('Using ff profile dir: %s', profile_dir)
 
 	bookmarks = bookmarks_get(join(profile_dir, 'places.sqlite'), timeout=opts.db_lock_timeout)
-
-	if opts.links:
-		links = links_get(opts.links)
-	else: links = list()
-
+	links = links_get(opts.links) if opts.links else list()
+	notes = notes_get(opts.notes) if opts.notes else None
 	if opts.backlog:
 		backlog = backlog_get(opts.backlog)
 		backlog = backlog_process(backlog, opts.backlog_pick)
@@ -525,20 +527,22 @@ def main(args=None):
 
 
 	## Install
+	json_dumps = dict(
+		tags=ft.partial(dump_tags, bookmarks),
+		backlog=ft.partial(dump_backlog, backlog),
+		links=ft.partial(dump_links, links),
+		notes=ft.partial(dump_notes, notes) )
 	if opts.output_format == 'fat':
 		dst = opts.output_path
 		if isdir(opts.output_path): dst = join(dst, 'index.html')
 		with dump_tempfile(dst) as dst:
-			dump_fat_html(opts.parts_path, dst, bookmarks, backlog, links)
+			dump_fat_html(opts.parts_path, dst, json_dumps)
 	elif opts.output_format.startswith('dir'):
 		link_kws = dict((w, w in opts.output_format) for w in ['symlink', 'hardlink'])
 		copy_parts(opts.parts_path, opts.output_path, **link_kws)
-		with dump_tempfile(join(opts.output_path, 'tags.json')) as dst:
-			dump_tags(bookmarks, dst)
-		with dump_tempfile(join(opts.output_path, 'backlog.json')) as dst:
-			dump_backlog(backlog, dst)
-		with dump_tempfile(join(opts.output_path, 'links.json')) as dst:
-			dump_links(links, dst)
+		for k, dump_func in json_dumps.viewitems():
+			with dump_tempfile(join(
+				opts.output_path, '{}.json'.format(k) )) as dst: dump_func(dst)
 	else: raise NotImplementedError
 
 	if opts.print_html_url:

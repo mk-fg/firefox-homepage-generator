@@ -1,5 +1,6 @@
 BACKLOG =
 LINKS =
+NOTES =
 DESTDIR =
 DEBUG =
 
@@ -38,6 +39,9 @@ ifdef BACKLOG
 endif
 ifdef LINKS
 	ffhomegen_args += -l $(LINKS)
+endif
+ifdef NOTES
+	ffhomegen_args += -n $(NOTES)
 endif
 ifdef DESTDIR
 	ffhomegen_args += -o $(DESTDIR)

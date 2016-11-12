@@ -20,7 +20,7 @@ body {
     .vis-box #vis svg .tag-cloud text {
       cursor: pointer; }
       .vis-box #vis svg .tag-cloud text:hover {
-        opacity: 0.7 !important; }
+        opacity: .7 !important; }
   .vis-box #vis-status {
     width: 100%;
     padding: 1px;
@@ -33,7 +33,7 @@ body {
       background: #ccc;
       height: 100%; }
 
-#tag-links, #backlog, #links {
+#tag-links, #backlog, #links, #notes {
   display: none; }
 
 #vis-shuffle {
